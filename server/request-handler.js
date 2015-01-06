@@ -11,7 +11,7 @@ this file and include it in basic-server.js so that it actually works.
 *Hint* Check out the node module documentation at http://nodejs.org/api/modules.html.
 
 **************************************************************/
-
+var fs = require('fs');
 var messages = {results: []};
 
 exports.requestHandler = function(request, response) {
@@ -40,28 +40,38 @@ exports.requestHandler = function(request, response) {
   //
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = "text/plain";
+  headers['Content-Type'] = "application/JSON";
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
-  if (!request.url){
-    statusCode = 404;
-    response.writeHead(statusCode, headers);
-    response.end('file not found!');
 
 
-  }
+
   if (request.method === 'GET'){
-
     response.writeHead(statusCode, headers);
     response.end(JSON.stringify(messages));
+
+    // fs.open(request.url, 'r', function(err){
+    //   var errorCode = err;
+    //   console.log('error code: ', errorCode);
+    //   console.log('request.url: ', request.url);
+    //   if (errorCode !== null){
+    //     statusCode = 404;
+    //     response.writeHead(statusCode, headers);
+    //     response.end('file not found!');
+    //   } else if (request.url === '/' || errorCode === null){
+    //     console.log(statusCode);
+    //     response.writeHead(statusCode, headers);
+    //     response.end(JSON.stringify(messages));
+    //   }
+    // });
   }
   if (request.method === 'POST'){
     statusCode = 201;
     response.writeHead(statusCode, headers);
 
     var string = '';
-    // console.log('post data ',request.message);
+    console.log('post data ');
     request.on('data', function(chunks){
       string += chunks;
     });
