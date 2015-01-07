@@ -13,6 +13,11 @@ this file and include it in basic-server.js so that it actually works.
 **************************************************************/
 var fs = require('fs');
 var messages = {results: []};
+var validPaths = {
+  '/classes/room1/': true,
+  '/classes/messages/': true,
+  '/': true
+};
 
 exports.requestHandler = function(request, response) {
   // Request and Response come from node's http module.
@@ -40,31 +45,42 @@ exports.requestHandler = function(request, response) {
   //
   // You will need to change this if you are sending something
   // other than plain text, like JSON or HTML.
-  headers['Content-Type'] = "application/JSON";
+  headers['Content-Type'] = "application/json";
 
   // .writeHead() writes to the request line and headers of the response,
   // which includes the status and all headers.
-
+  if (request.method === 'OPTIONS'){
+    response.writeHead(statusCode, headers);
+    response.end(JSON.stringify(messages));
+  }
 
 
   if (request.method === 'GET'){
-    response.writeHead(statusCode, headers);
-    response.end(JSON.stringify(messages));
 
-    // fs.open(request.url, 'r', function(err){
-    //   var errorCode = err;
-    //   console.log('error code: ', errorCode);
-    //   console.log('request.url: ', request.url);
-    //   if (errorCode !== null){
-    //     statusCode = 404;
-    //     response.writeHead(statusCode, headers);
-    //     response.end('file not found!');
-    //   } else if (request.url === '/' || errorCode === null){
-    //     console.log(statusCode);
-    //     response.writeHead(statusCode, headers);
-    //     response.end(JSON.stringify(messages));
-    //   }
-    // });
+    if (validPaths.hasOwnProperty(request.url)){
+      var stream = '';
+      var fileStream = fs.createReadStream('logs/messages.txt');
+      fileStream.on('error', function(exception){
+        console.log('we had an error: ', exception);
+      });
+      fileStream.on('data', function(data){
+        // want to accumulate data
+        stream += data;
+        console.log('streaming ' , stream)
+      });
+      fileStream.on('close', function(){
+        console.log('data stream', stream);
+        stream = '{"results":[{}'+stream+']}';
+        response.writeHead(statusCode, headers);
+        response.end(stream);
+      });
+
+    } else {
+      statusCode = 404;
+      response.writeHead(statusCode, headers);
+      response.end('file not found!');
+    }
+
   }
   if (request.method === 'POST'){
     statusCode = 201;
@@ -77,8 +93,14 @@ exports.requestHandler = function(request, response) {
     });
 
     request.on('end', function(){
-      messages.results.push(JSON.parse(string));
-      response.end(JSON.stringify(messages.results[messages.results.length -1]));
+      string = ',' + string;
+      fs.appendFile('logs/messages.txt', string, function(err){
+        if (err){
+          console.log ('there is a problem!!!!', err)
+        }
+      });
+      // messages.results.push(JSON.parse(string));
+      response.end(JSON.stringify('post success'));
     });
   }
 
